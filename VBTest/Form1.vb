@@ -86,54 +86,46 @@ Public Class Form1
 
     Private Sub btnExcel_Click(sender As Object, e As EventArgs) Handles btnExcel.Click
 
-        saveFileDialog1.Filter = "Libro de Excel |*.xlsx"
-        saveFileDialog1.Title = "EXCEL DOCUMENT"
+        saveFileDialog1.Filter = "Excel Files|*.xlsx"
+        saveFileDialog1.Title = "Save the Text File in Excel"
 
         If saveFileDialog1.ShowDialog() = DialogResult.OK Then
             Dim filePath As String = saveFileDialog1.FileName
-            Dim spreadsheetDocument As SpreadsheetDocument = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook)
 
-            ' Add a WorkbookPart to the document.
-            Dim workbookpart As WorkbookPart = spreadsheetDocument.AddWorkbookPart
-            workbookpart.Workbook = New Workbook
+            Using spreadsheetDocument As SpreadsheetDocument = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook)
+                Dim workbookpart As WorkbookPart = spreadsheetDocument.AddWorkbookPart()
+                workbookpart.Workbook = New Workbook()
 
-            ' Add a WorksheetPart to the WorkbookPart.
-            Dim worksheetPart As WorksheetPart = workbookpart.AddNewPart(Of WorksheetPart)()
-            worksheetPart.Worksheet = New Worksheet(New SheetData())
+                Dim worksheetPart As WorksheetPart = workbookpart.AddNewPart(Of WorksheetPart)()
+                worksheetPart.Worksheet = New Worksheet(New SheetData())
 
-            ' Add Sheets to the Workbook.
-            Dim sheets As Sheets = spreadsheetDocument.WorkbookPart.Workbook.AppendChild(Of Sheets)(New Sheets())
+                Dim sheets As Sheets = workbookpart.Workbook.AppendChild(New Sheets())
 
-            ' Append a new worksheet and associate it with the workbook.
-            Dim sheet As Sheet = New Sheet
-            sheet.Id = spreadsheetDocument.WorkbookPart.GetIdOfPart(worksheetPart)
-            sheet.SheetId = 1
-            sheet.Name = "Hoja de calculo "
+                Dim sheet As New Sheet With {
+                 .Id = workbookpart.GetIdOfPart(worksheetPart),
+                 .SheetId = 1,
+                 .Name = "Hoja de calculo "
+             }
+                sheets.Append(sheet)
 
-            sheets.Append(sheet)
+                Dim sheetData As SheetData = worksheetPart.Worksheet.Elements(Of SheetData)().First()
 
-            Dim sheetData As SheetData = worksheetPart.Worksheet.Elements(Of SheetData)().First()
+                Dim headerRow As New Row()
+                headerRow.Append(New Cell() With {.CellReference = "A1", .DataType = CellValues.String, .CellValue = New CellValue("ID")})
+                headerRow.Append(New Cell() With {.CellReference = "B1", .DataType = CellValues.String, .CellValue = New CellValue("Description")})
+                headerRow.Append(New Cell() With {.CellReference = "C1", .DataType = CellValues.String, .CellValue = New CellValue("Price")})
+                sheetData.Append(headerRow)
 
-            ' Add the column headers.
-            Dim headerRow As Row = New Row()
-            headerRow.Append(New Cell() With {.CellReference = "A1", .DataType = CellValues.String, .CellValue = New CellValue("ID")})
-            headerRow.Append(New Cell() With {.CellReference = "B1", .DataType = CellValues.String, .CellValue = New CellValue("Description")})
-            headerRow.Append(New Cell() With {.CellReference = "C1", .DataType = CellValues.String, .CellValue = New CellValue("Price")})
-            sheetData.Append(headerRow)
+                For Each item As ListViewItem In lstvData.Items
+                    Dim dataRow As New Row()
+                    dataRow.Append(New Cell() With {.CellReference = "A" & (sheetData.Elements(Of Row)().Count + 1), .DataType = CellValues.String, .CellValue = New CellValue(item.SubItems(0).Text)})
+                    dataRow.Append(New Cell() With {.CellReference = "B" & (sheetData.Elements(Of Row)().Count + 1), .DataType = CellValues.String, .CellValue = New CellValue(item.SubItems(1).Text)})
+                    dataRow.Append(New Cell() With {.CellReference = "C" & (sheetData.Elements(Of Row)().Count + 1), .DataType = CellValues.String, .CellValue = New CellValue(item.SubItems(2).Text)})
+                    sheetData.Append(dataRow)
+                Next
 
-            ' Add the data rows.
-            For Each item As ListViewItem In lstvData.Items
-                Dim dataRow As Row = New Row()
-                dataRow.Append(New Cell() With {.CellReference = "A" & (sheetData.Elements(Of Row)().Count + 2), .DataType = CellValues.String, .CellValue = New CellValue(item.SubItems(0).Text)})
-                dataRow.Append(New Cell() With {.CellReference = "B" & (sheetData.Elements(Of Row)().Count + 2), .DataType = CellValues.String, .CellValue = New CellValue(item.SubItems(1).Text)})
-                dataRow.Append(New Cell() With {.CellReference = "C" & (sheetData.Elements(Of Row)().Count + 2), .DataType = CellValues.String, .CellValue = New CellValue(item.SubItems(2).Text)})
-                sheetData.Append(dataRow)
-            Next
-
-            workbookpart.Workbook.Save()
-
-            ' Dispose the document.
-            spreadsheetDocument.Dispose()
+                workbookpart.Workbook.Save()
+            End Using
         End If
     End Sub
 
